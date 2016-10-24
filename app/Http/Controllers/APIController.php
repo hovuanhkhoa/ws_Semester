@@ -266,9 +266,7 @@ class APIController extends Controller
             ->where('Class',$seat->Class)
             ->where('Fare_type',$seat->Fare_type)
             ->first()->Fare;
-
-        echo ($fare);
-
+        
         $array = json_decode( $request->getContent(), true );
         for($i = 0, $n = count($array); $i<$n; $i++){
             if($array[$i]['title'] == null || $array[$i]['lastName']== null
