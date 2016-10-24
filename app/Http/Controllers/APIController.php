@@ -261,12 +261,14 @@ class APIController extends Controller
 
         $seat = Seat::where("Code",$id)->first();
 
-        $fare = Flight::where('Code',$seat->Flight_code)
+        $flight = Flight::where('Code',$seat->Flight_code)
             ->where('Date',$seat->Date)
             ->where('Class',$seat->Class)
             ->where('Fare_type',$seat->Fare_type)
-            ->first()->Fare;
-        
+            ->first();
+
+        $fare = $flight->Fare;
+
         $array = json_decode( $request->getContent(), true );
         for($i = 0, $n = count($array); $i<$n; $i++){
             if($array[$i]['title'] == null || $array[$i]['lastName']== null
@@ -304,6 +306,18 @@ class APIController extends Controller
             ->where('Date', $departDay)
             ->where('Arrival_airport', $arrivalAirport)
             ->where('Number_of_seats','>=', $numPassengers)->get();
+
+        foreach($flight as $f){
+            $seats = Seat::where("Flight_code",$f->Code)
+                ->where("Date",$f->Date)
+                ->where("Class",$f->Class)
+                ->where("Fare_type",$f->Fare_type)->get();
+            foreach($seats as $seat){
+                if((int)Booking::where("Seat_code",$seat->Code)->first()->Status != 0){
+                    $f->Number_of_seats -= (int)Passenger::where("Seat_code",$seat->Code)->count("id");
+                }
+            }
+        }
 
         if(count($flight) <=0)
             return $this->responseJson("",404);
