@@ -66,9 +66,10 @@ class APIController extends Controller
     }
 
     public function storeBooking(Request $request){
-        $flightDetails = json_decode($request->getContent())->flightDetail;
+        if($request == null) return $this->responseJson([],400);
+        $flightDetails = json_decode($request->getContent())->flightDetails;
+        if($flightDetails == null) return $this->responseJson([],400);
 
-        if($request == null || $flightDetails == null) return $this->responseJson([],400);
         $newCode = $this->getNextSeatCode();
 
         Booking::create([
@@ -192,8 +193,8 @@ class APIController extends Controller
         $result = [];
         foreach ($arrayFlight as $flightDetail) {
             $flightID = $flightDetail->flightId;
-            $class = $flightDetail->class;
-            $fareType = $flightDetail->fareType;
+            $class = (string)$flightDetail->class;
+            $fareType = (string)$flightDetail->fareType;
             $date = $flightDetail->date;
             if ($flightID == null || $class == null || $fareType == null || $date == null) {
                 return null;
@@ -215,10 +216,8 @@ class APIController extends Controller
 
             array_push($result,$flight);
 
-            Seat::updateOrCreate([
-                'Code' => $id,
-                'Flight_code' => $flightID,
-                'Date' => $date,
+            Seat::updateOrCreate(['Code' => $id, 'Flight_code' => $flightID, 'Date' => $date
+            ],[
                 'Class' => $class,
                 'Fare_type' => $fareType
             ]);
@@ -268,15 +267,18 @@ class APIController extends Controller
             ->first();
 
         $fare = $flight->Fare;
-
         $array = json_decode( $request->getContent(), true );
+
+        if($this->getRealNumberOfSeat($flight) < count($array))
+            return $this->responseJson(["message"=> "Airplane is full"],403);
+
         for($i = 0, $n = count($array); $i<$n; $i++){
             if($array[$i]['title'] == null || $array[$i]['lastName']== null
                 || $array[$i]['firstName']== null) return $this->responseJson("",400);
 
             Passenger::updateOrCreate([
                 'Seat_code' => $id,
-                'id' => $i,
+                'id' => $i],[
                 'Title' => $array[$i]['title'],
                 'Last_name' => $array[$i]['lastName'],
                 'First_name'=> $array[$i]['firstName']
@@ -291,6 +293,19 @@ class APIController extends Controller
         return $this->responseJson($request->all(),201);
     }
 
+    public function getRealNumberOfSeat($f){
+        $result = $f->Number_of_seats;
+        $seats = Seat::where("Flight_code",$f->Code)
+            ->where("Date",$f->Date)
+            ->where("Class",$f->Class)
+            ->where("Fare_type",$f->Fare_type)->get();
+        foreach($seats as $seat){
+            if((int)Booking::where("Seat_code",$seat->Code)->first()->Status != 0){
+                $result -= (int)Passenger::where("Seat_code",$seat->Code)->count("id");
+            }
+        }
+        return $result;
+    }
 
 
     public function indexFlightSearch(Request $request){
@@ -308,15 +323,7 @@ class APIController extends Controller
             ->where('Number_of_seats','>=', $numPassengers)->get();
 
         foreach($flight as $f){
-            $seats = Seat::where("Flight_code",$f->Code)
-                ->where("Date",$f->Date)
-                ->where("Class",$f->Class)
-                ->where("Fare_type",$f->Fare_type)->get();
-            foreach($seats as $seat){
-                if((int)Booking::where("Seat_code",$seat->Code)->first()->Status != 0){
-                    $f->Number_of_seats -= (int)Passenger::where("Seat_code",$seat->Code)->count("id");
-                }
-            }
+            $f->Number_of_seats = $this->getRealNumberOfSeat($f);
         }
 
         if(count($flight) <=0)
@@ -324,6 +331,7 @@ class APIController extends Controller
         else
             return $this->responseJson($flight,200);
     }
+
 
 
     public function indexFareType(){
