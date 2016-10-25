@@ -17,7 +17,8 @@ use App\Http\Requests;
 class APIController extends Controller
 {
     public function responseJson($data,$httpCode){
-        return response()->json($data, $httpCode, ['Content-type'=> 'application/json; charset=utf-8'], JSON_UNESCAPED_UNICODE);
+        return response()->json($data, $httpCode, ['Content-type'=> 'application/json; charset=utf-8',
+            'Access-Control-Allow-Origin' => '*'], JSON_UNESCAPED_UNICODE);
     }
 
     public function getNextSeatCode(){
