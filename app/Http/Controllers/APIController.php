@@ -333,13 +333,27 @@ class APIController extends Controller
         if($departureAirport == null || $arrivalAirport == null || $departDay == null || $numPassengers == null)
             return $this->responseJson("",400);
 
-        $flight = Flight::where('Departure_airport', $departureAirport)
+        $flight = Flight::select(
+            "Code as code",
+            "Departure_airport as departureAirport",
+            "Arrival_airport as arrivalAirport",
+            "Date as date",
+            "Time as time",
+            "Number_of_seats as numOfSeats",
+            "Class as class",
+            "Fare_type as fareType"
+        )->where('Departure_airport', $departureAirport)
             ->where('Date', $departDay)
             ->where('Arrival_airport', $arrivalAirport)
             ->where('Number_of_seats','>=', $numPassengers)->get();
 
-        foreach($flight as $f){
-            $f->Number_of_seats = $this->getRealNumberOfSeat($f);
+        $flightTemp = Flight::where('Departure_airport', $departureAirport)
+            ->where('Date', $departDay)
+            ->where('Arrival_airport', $arrivalAirport)
+            ->where('Number_of_seats','>=', $numPassengers)->get();
+
+        for($i = 0,$n = count($flight);$i<$n; $i++){
+            $flight[$i]->numOfSeats = $this->getRealNumberOfSeat($flightTemp[$i]);
         }
 
         if(count($flight) <=0)
