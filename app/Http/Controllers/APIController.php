@@ -13,7 +13,6 @@ use App\Passenger;
 use App\Seat;
 use Illuminate\Http\Request;
 use App\Http\Requests;
-use SebastianBergmann\Comparator\Book;
 
 class APIController extends Controller
 {
@@ -67,8 +66,25 @@ class APIController extends Controller
 
     public function storeBooking(Request $request){
         if($request == null) return $this->responseJson([],400);
-        $flightDetails = json_decode($request->getContent())->flightDetails;
-        if($flightDetails == null) return $this->responseJson([],400);
+        $reqObj = json_decode($request->getContent());
+        //echo dd($reqObj);
+        //$flightDetails = $reqObj['flightDetails'];
+        //$numOfPassengers = $reqObj['numOfPassengers'];
+        $flightDetails = $reqObj->flightDetails;
+        $numOfPassengers = $reqObj->numOfPassengers;
+        if($flightDetails == null || $numOfPassengers == null) return $this->responseJson([],400);
+
+        foreach ($flightDetails as $flightDetail) {
+            $flight = Flight::where('Code',$flightDetail->flightId)
+                ->where('Date',$flightDetail->date)
+                ->where('Class',$flightDetail->class)
+                ->where('Fare_type',$flightDetail->fareType)
+                ->first();
+
+            if($this->getRealNumberOfSeat($flight) < $numOfPassengers)
+                return $this->responseJson(["message"=> "Airplane is full"],403);
+        }
+
 
         $newCode = $this->getNextSeatCode();
 
