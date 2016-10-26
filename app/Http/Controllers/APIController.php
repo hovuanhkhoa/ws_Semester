@@ -18,7 +18,10 @@ class APIController extends Controller
 {
     public function responseJson($data,$httpCode){
         return response()->json($data, $httpCode, ['Content-type'=> 'application/json; charset=utf-8',
-            'Access-Control-Allow-Origin' => '*'], JSON_UNESCAPED_UNICODE);
+            'Access-Control-Allow-Origin' => '*',
+            'Access-Control-Allow-Methods'=>'GET, POST, PATCH, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers'=> 'Origin, Content-Type, X-Auth-Token',
+            'Access-Control-Allow-Credentials'=>'true'], JSON_UNESCAPED_UNICODE);
     }
 
     public function getNextSeatCode(){
@@ -65,6 +68,11 @@ class APIController extends Controller
         return $this->responseJson($result,$httpCode);
     }
 
+    public function  optionsRouting($id = null){
+        return $this->responseJson("",200);
+
+    }/////
+
     public function storeBooking(Request $request){
         if($request == null) return $this->responseJson([],400);
         $reqObj = json_decode($request->getContent());
@@ -76,7 +84,7 @@ class APIController extends Controller
         if($flightDetails == null || $numOfPassengers == null) return $this->responseJson([],400);
 
         foreach ($flightDetails as $flightDetail) {
-            $flight = Flight::where('Code',$flightDetail->flightId)
+            $flight = Flight::where('Code',$flightDetail->code)
                 ->where('Date',$flightDetail->date)
                 ->where('Class',$flightDetail->class)
                 ->where('Fare_type',$flightDetail->fareType)
@@ -209,11 +217,11 @@ class APIController extends Controller
     public function updateFlightDetailDatabase($arrayFlight, $id){
         $result = [];
         foreach ($arrayFlight as $flightDetail) {
-            $flightID = $flightDetail->flightId;
+            $code = $flightDetail->code;
             $class = (string)$flightDetail->class;
             $fareType = (string)$flightDetail->fareType;
             $date = $flightDetail->date;
-            if ($flightID == null || $class == null || $fareType == null || $date == null) {
+            if ($code == null || $class == null || $fareType == null || $date == null) {
                 return null;
             }
 
@@ -226,18 +234,16 @@ class APIController extends Controller
                 "Number_of_seats as numOfSeats",
                 "Class as class",
                 "Fare_type as fareType"
-            )->where('Code', $flightID)
+            )->where('Code', $code)
                 ->where('Date', $date)
                 ->where('Class', $class)
                 ->where('Fare_type', $fareType)->first();
 
             array_push($result,$flight);
 
-            Seat::updateOrCreate(['Code' => $id, 'Flight_code' => $flightID, 'Date' => $date
-            ],[
-                'Class' => $class,
-                'Fare_type' => $fareType
-            ]);
+            Seat::updateOrCreate(['Code' => $id, 'Flight_code' => $code,
+                    'Date' => $date,'Class' => $class, 'Fare_type' => $fareType]
+            );
         }
         return $result;
     }
@@ -246,6 +252,8 @@ class APIController extends Controller
     public function updateFlightDetail($id = null, Request $request){
         if($id == null) return $this->responseJson(["message"=> "Booking ID is not found"],404);
         $flightDetails = json_decode($request->getContent());
+        if(count($flightDetails) < 1) return $this->responseJson('',400);
+        Seat::where('Code',$id)->delete();
         $result = $this->updateFlightDetailDatabase($flightDetails,$id);
         if($result != null)
             return $this->responseJson($result,201);
@@ -288,6 +296,8 @@ class APIController extends Controller
 
         if($this->getRealNumberOfSeat($flight) < count($array))
             return $this->responseJson(["message"=> "Airplane is full"],403);
+
+        Passenger::where('Seat_code',$id)->delete();
 
         for($i = 0, $n = count($array); $i<$n; $i++){
             if($array[$i]['title'] == null || $array[$i]['lastName']== null
@@ -342,7 +352,8 @@ class APIController extends Controller
             "Time as time",
             "Number_of_seats as numOfSeats",
             "Class as class",
-            "Fare_type as fareType"
+            "Fare_type as fareType",
+            "Fare as fare"
         )->where('Departure_airport', $departureAirport)
             ->where('Date', $departDay)
             ->where('Arrival_airport', $arrivalAirport)
