@@ -35,6 +35,14 @@ class Handler extends ExceptionHandler
         parent::report($exception);
     }
 
+    public function responseJson($data,$httpCode){
+        return response()->json($data, $httpCode, ['Content-type'=> 'application/json; charset=utf-8',
+            'Access-Control-Allow-Origin' => '*',
+            'Access-Control-Allow-Methods'=>'GET, POST, PATCH, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers'=> 'Origin, Content-Type, X-Auth-Token',
+            'Access-Control-Allow-Credentials'=>'true'], JSON_UNESCAPED_UNICODE);
+    }
+
     /**
      * Render an exception into an HTTP response.
      *
@@ -42,9 +50,9 @@ class Handler extends ExceptionHandler
      * @param  \Exception  $exception
      * @return \Illuminate\Http\Response
      */
-    public function render($request, Exception $exception)
+    public function render($request, Exception $e)
     {
-        return parent::render($request, $exception);
+        return $this->responseJson("",400);
     }
 
     /**
