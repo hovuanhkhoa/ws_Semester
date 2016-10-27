@@ -105,7 +105,7 @@ class APIController extends Controller
 
         $result["id"]= $newCode;
 
-        $result["flightDetail"] = $this->updateFlightDetailDatabase($flightDetails,$newCode);
+        $result["flightDetails"] = $this->updateFlightDetailDatabase($flightDetails,$newCode);
 
         return $this->responseJson($result,201);
     }
