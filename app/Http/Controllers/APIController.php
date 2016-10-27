@@ -254,7 +254,9 @@ class APIController extends Controller
         if($id == null) return $this->responseJson(["message"=> "Booking ID is not found"],404);
         $flightDetails = json_decode($request->getContent());
         if(count($flightDetails) < 1) return $this->responseJson('',400);
-        Seat::where('Code',$id)->delete();
+        $seat = Seat::where('Code',$id);
+        if(count($seat) < 1) return $this->responseJson(["message"=> "Booking ID is not found"],404);
+        $seat->delete();
         $result = $this->updateFlightDetailDatabase($flightDetails,$id);
         if($result != null)
             return $this->responseJson($result,201);
@@ -274,7 +276,9 @@ class APIController extends Controller
 
     public function indexPassengerDetail($id = null){
         if($id == null) return $this->responseJson(["message"=> "Booking ID is not found"],404);
-        return $this->responseJson($this->getPassengerDetail($id),200);
+        $passenger = $this->getPassengerDetail($id);
+        if(count($passenger) < 1) return $this->responseJson(["message"=> "Booking ID is not found"],404);
+        return $this->responseJson($passenger,200);
     }
 
     public function updateFlightsDatabase(){
@@ -370,7 +374,7 @@ class APIController extends Controller
         }
 
         if(count($flight) <=0)
-            return $this->responseJson("",404);
+            return $this->responseJson([],404);
         else
             return $this->responseJson($flight,200);
     }
