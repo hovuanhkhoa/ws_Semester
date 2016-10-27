@@ -233,7 +233,8 @@ class APIController extends Controller
                 "Time as time",
                 "Number_of_seats as numOfSeats",
                 "Class as class",
-                "Fare_type as fareType"
+                "Fare_type as fareType",
+                "Fare as fare"
             )->where('Code', $code)
                 ->where('Date', $date)
                 ->where('Class', $class)
