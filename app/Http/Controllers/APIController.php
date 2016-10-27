@@ -374,7 +374,7 @@ class APIController extends Controller
         }
 
         if(count($flight) <=0)
-            return $this->responseJson([],404);
+            return $this->responseJson([],200);
         else
             return $this->responseJson($flight,200);
     }
